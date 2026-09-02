@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Finance Ledger">
+<meta name="theme-color" content="#1F2A44">
+<title>Finance Ledger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #EDE6D3;
+    --paper-line: #C9BFA0;
+    --card: #F7F3E7;
+    --ink: #1F2A44;
+    --ink-soft: #52607A;
+    --stamp: #A23B2E;
+    --brass: #B98A2E;
+    --success: #3F6F4E;
+    --focus: #2F4B7C;
+  }
+
+  * { box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce){
+    * { animation: none !important; transition: none !important; }
+  }
+
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(
+        var(--paper) 0px, var(--paper) 31px,
+        rgba(201,191,160,0.55) 31px, rgba(201,191,160,0.55) 32px
+      );
+    color: var(--ink);
+    font-family: 'Lora', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .app{ max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  header.masthead{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    flex-wrap: wrap; gap: 10px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 14px;
+    margin-bottom: 6px;
+  }
+  header.masthead h1{
+    font-size: 30px; margin: 0 0 4px 0; font-weight: 700; letter-spacing: 0.2px;
+  }
+  header.masthead p{
+    margin: 0; color: var(--ink-soft); font-size: 14px;
+  }
+  .header-actions{ display:flex; gap: 14px; flex-wrap:wrap; }
+  .text-btn{
+    background:none; border:none; color: var(--ink-soft); font-family:'IBM Plex Mono', monospace;
+    font-size:12px; text-decoration: underline; cursor:pointer; padding:6px 2px;
+  }
+  .text-btn:hover{ color: var(--stamp); }
+
+  nav.tabs{
+    display:flex; gap: 4px; margin: 18px 0 22px 0; border-bottom: 1px solid var(--paper-line);
+    position: sticky; top: 0; background: var(--paper); z-index: 5;
+  }
+  nav.tabs button{
+    font-family:'Lora', serif; font-size: 15px; font-weight: 600;
+    background:none; border:none; color: var(--ink-soft);
+    padding: 12px 16px; cursor:pointer; border-bottom: 3px solid transparent;
+    margin-bottom: -1px; flex: 1;
+  }
+  nav.tabs button.active{ color: var(--ink); border-bottom-color: var(--stamp); }
+  nav.tabs button:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+    outline: 2px solid var(--focus); outline-offset: 2px;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--paper-line);
+    border-radius: 3px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .card h2{ margin: 0 0 14px 0; font-size: 17px; font-weight: 600; }
+  .card h3{ margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+
+  form.entry-form{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items:end;
+  }
+  form.entry-form .field{ display:flex; flex-direction:column; gap:5px; }
+  form.entry-form .field.wide{ grid-column: span 2; }
+  form.entry-form label{ font-family:'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+  input, select{
+    font-family:'IBM Plex Mono', monospace; font-size: 16px;
+    padding: 10px 9px; border: 1px solid var(--paper-line); border-radius: 2px;
+    background: #fff; color: var(--ink); width:100%;
+  }
+  .hidden{ display:none !important; }
+  .btn{
+    font-family:'Lora', serif; font-weight:600; font-size: 14px;
+    background: var(--ink); color: var(--card); border: none;
+    padding: 10px 18px; border-radius: 2px; cursor:pointer;
+  }
+  .btn:hover{ background: var(--focus); }
+
+  .filters{ display:flex; gap:14px; margin: 4px 0 14px 0; flex-wrap:wrap; }
+  .filters .field{ display:flex; flex-direction:column; gap:4px; }
+  .filters label{ font-family:'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+
+  table{ width:100%; border-collapse: collapse; font-size: 14px; }
+  thead th{
+    text-align:left; font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:12px;
+    color: var(--ink-soft); border-bottom: 2px solid var(--ink); padding: 8px 6px;
+  }
+  tbody td{ padding: 9px 6px; border-bottom: 1px solid var(--paper-line); vertical-align: top; }
+  tbody tr:last-child td{ border-bottom: none; }
+  td.amount, th.amount{ text-align:right; font-family:'IBM Plex Mono', monospace; }
+  .void-btn{
+    background:none; border:none; color: var(--stamp); font-family:'IBM Plex Mono', monospace;
+    font-size: 12px; text-decoration: underline; cursor:pointer; padding:6px 2px;
+  }
+  .empty-row td{ color: var(--ink-soft); font-style: italic; padding: 16px 6px; }
+
+  .dash-top{ display:grid; grid-template-columns: 1fr 1.4fr; gap: 18px; }
+  .stamp-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+  .stamp{
+    width: 168px; height: 168px; border-radius: 50%;
+    border: 3px dashed var(--stamp); color: var(--stamp);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transform: rotate(-7deg);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .stamp .label{ font-size: 11px; letter-spacing: 1px; }
+  .stamp .value{ font-size: 20px; font-weight: 600; margin-top: 6px; text-align:center; padding:0 10px; }
+  .segmented{ display:flex; border: 1px solid var(--ink); border-radius: 3px; overflow:hidden; }
+  .segmented button{
+    background: var(--card); border:none; padding: 7px 14px; font-family:'IBM Plex Mono', monospace;
+    font-size: 12px; cursor:pointer; color: var(--ink);
+  }
+  .segmented button.active{ background: var(--ink); color: var(--card); }
+  .segmented button + button{ border-left: 1px solid var(--ink); }
+
+  .chart-box{ position: relative; height: 230px; }
+  .chart-box.wide{ height: 260px; }
+
+  .dash-lower{ display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  .donut-grid{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 18px 12px;
+  }
+  .donut-card{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .donut-card .ring{ width:110px; height:110px; position:relative; }
+  .donut-card .cat-name{ font-size:12px; font-weight:600; text-align:center; }
+  .donut-card .cat-nums{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-soft); text-align:center; }
+  .donut-card .over-badge{ color: var(--stamp); font-weight:600; font-size:11px; }
+  .month-total-label{ font-weight:600; }
+
+  footer.note{ color: var(--ink-soft); font-size: 12px; margin-top: 8px; }
+
+  @media (max-width: 720px){
+    form.entry-form{ grid-template-columns: 1fr 1fr; }
+    form.entry-form .field.wide{ grid-column: span 2; }
+    .dash-top, .dash-lower{ grid-template-columns: 1fr; }
+    .stamp-wrap{ margin-bottom: 4px; }
+  }
+  @media (max-width: 480px){
+    .app{ padding: 18px 14px 50px; }
+    header.masthead h1{ font-size: 24px; }
+    nav.tabs button{ font-size: 13px; padding: 12px 6px; }
+    form.entry-form{ grid-template-columns: 1fr; }
+    form.entry-form .field.wide{ grid-column: span 1; }
+    table{ font-size: 13px; }
+    thead th, tbody td{ padding: 8px 4px; }
+    .donut-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="masthead">
+    <div>
+      <h1>Finance Ledger</h1>
+      <p>Sheik's rupee register — logged as it happens</p>
+    </div>
+    <div class="header-actions">
+      <button class="text-btn" id="driveConnectBtn">connect google drive</button>
+      <span id="driveStatus" style="font-size:12px; color:var(--ink-soft); align-self:center;"></span>
+      <button class="text-btn" id="exportBtn">export data</button>
+      <button class="text-btn" id="importBtn">import data</button>
+      <input type="file" id="importFile" accept="application/json" class="hidden">
+      <button class="text-btn" id="clearDataBtn">clear all data</button>
+    </div>
+  </header>
+
+  <div id="driveSetup" class="hidden" style="background:var(--card); border:1px solid var(--paper-line); border-radius:8px; padding:14px 16px; margin-bottom:16px; font-size:14px;">
+    <div style="margin-bottom:8px;">Paste your Google OAuth Client ID (one-time setup — see instructions) to sync this ledger to your Google Drive across devices:</div>
+    <input type="text" id="driveClientIdInput" placeholder="xxxxxxxx.apps.googleusercontent.com" style="width:100%; max-width:420px; padding:6px 8px; font-family:'IBM Plex Mono',monospace; font-size:13px;">
+    <button class="text-btn" id="driveClientIdSave" style="margin-left:8px;">save</button>
+  </div>
+
+  <nav class="tabs">
+    <button data-view="transactions" class="active">Transactions</button>
+    <button data-view="budgets">Budgets</button>
+    <button data-view="dashboard">Dashboard</button>
+  </nav>
+
+  <!-- TRANSACTIONS -->
+  <section class="view active" id="view-transactions">
+    <div class="card">
+      <h2>New entry</h2>
+      <form class="entry-form" id="txnForm">
+        <div class="field">
+          <label for="txnDate">Date</label>
+          <input type="date" id="txnDate" required>
+        </div>
+        <div class="field">
+          <label for="txnCategory">Category</label>
+          <select id="txnCategory" required></select>
+        </div>
+        <div class="field" id="subCatField">
+          <label for="txnSubCategory">Supplies sub-category</label>
+          <select id="txnSubCategory"></select>
+        </div>
+        <div class="field">
+          <label for="txnAmount">Amount (₹)</label>
+          <input type="number" id="txnAmount" min="0" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="field wide hidden" id="miscField">
+          <label for="txnMisc">Misc purpose (if any)</label>
+          <input type="text" id="txnMisc" placeholder="What was this for?">
+        </div>
+        <div class="field">
+          <button type="submit" class="btn">Add entry</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Ledger</h2>
+      <div class="filters">
+        <div class="field">
+          <label for="filterCategory">Category</label>
+          <select id="filterCategory"><option value="">All categories</option></select>
+        </div>
+        <div class="field">
+          <label for="filterMonth">Month</label>
+          <select id="filterMonth"><option value="">All months</option></select>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>S.No</th><th>Date</th><th>Category</th><th>Detail</th>
+            <th class="amount">Amount (₹)</th><th>Logged at</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="txnTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- BUDGETS -->
+  <section class="view" id="view-budgets">
+    <div class="card">
+      <h2>New budget</h2>
+      <form class="entry-form" id="budgetForm">
+        <div class="field">
+          <label for="budgetMonth">Month</label>
+          <input type="month" id="budgetMonth" required>
+        </div>
+        <div class="field">
+          <label for="budgetCategory">Category</label>
+          <select id="budgetCategory" required></select>
+        </div>
+        <div class="field">
+          <label for="budgetAmount">Allocated (₹)</label>
+          <input type="number" id="budgetAmount" min="0" step="1" placeholder="0" required>
+        </div>
+        <div class="field">
+          <button type="submit" class="btn">Add budget</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Budgets by month</h2>
+      <table>
+        <thead>
+          <tr><th>Month</th><th>Category</th><th class="amount">Budget (₹)</th><th class="amount">Spent (₹)</th><th class="amount">Remaining (₹)</th><th></th></tr>
+        </thead>
+        <tbody id="budgetTableBody"></tbody>
+      </table>
+      <footer class="note">A new month means new budget rows — nothing carries over automatically.</footer>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="view" id="view-dashboard">
+    <div class="dash-top">
+      <div class="card stamp-wrap">
+        <div class="stamp">
+          <div class="label">TOTAL SPENT</div>
+          <div class="value" id="totalSpentValue">₹0</div>
+        </div>
+        <div class="segmented" id="dashRangeToggle">
+          <button data-range="all" class="active">All time</button>
+          <button data-range="month">This month</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Spending by category</h2>
+        <div class="chart-box"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Spending over time</h2>
+      <div class="chart-box wide"><canvas id="timeChart"></canvas></div>
+    </div>
+
+    <div class="dash-lower">
+      <div class="card">
+        <h2>Recent transactions</h2>
+        <table>
+          <thead><tr><th>Date</th><th>Category</th><th class="amount">Amount (₹)</th></tr></thead>
+          <tbody id="recentTableBody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Budgets — this month</h2>
+        <div class="donut-grid" id="budgetDonutGrid"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  const CATEGORIES = ['Backup travel','Bus pass','Supplies','Petrol','Self','Skin','Hair care','Miscellaneous'];
+  const SUPPLY_SUBCATS = ['Milk','Soya','Curd','Chicken','Egg'];
+
+  const inr = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits: 2 });
+  const inrWhole = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits: 0 });
+
+  const CAT_COLORS = {
+    'Backup travel': '#1F2A44',
+    'Bus pass': '#52607A',
+    'Supplies': '#3F6F4E',
+    'Petrol': '#7A4B26',
+    'Self': '#A23B2E',
+    'Skin': '#8C6E4F',
+    'Hair care': '#6B4E71',
+    'Miscellaneous': '#B98A2E'
+  };
+
+  let transactions = [];
+  let budgets = [];
+  let dashRange = 'all';
+
+  function uid(){
+    return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+  }
+
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function currentMonth(){ return new Date().toISOString().slice(0,7); }
+  function monthOf(dateStr){ return dateStr ? dateStr.slice(0,7) : ''; }
+
+  function formatLoggedAt(iso){
+    const d = new Date(iso);
+    return d.toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  function formatDate(dateStr){
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  }
+  function monthLabel(monthStr){
+    const [y,m] = monthStr.split('-');
+    const d = new Date(Number(y), Number(m)-1, 1);
+    return d.toLocaleDateString('en-IN', { month:'short', year:'numeric' });
+  }
+
+  // Persisted with localStorage as a fast local cache, AND — if the user connects
+  // Google Drive — synced to a single JSON file in their Drive's hidden app folder,
+  // so the same data shows up on every device they sign in on.
+  const STORAGE_KEYS = { transactions: 'financeLedger.transactions', budgets: 'financeLedger.budgets' };
+
+  // ---------- Google Drive sync ----------
+  const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+  const DRIVE_FILE_NAME = 'finance-ledger-data.json';
+  const drive = {
+    clientId: localStorage.getItem('financeLedger.gdriveClientId') || '',
+    tokenClient: null,
+    accessToken: null,
+    fileId: null,
+    connected: false,
+    syncing: false
+  };
+
+  function driveSetStatus(msg){
+    const el = document.getElementById('driveStatus');
+    if(el) el.textContent = msg || '';
+  }
+
+  function initDriveButton(){
+    const btn = document.getElementById('driveConnectBtn');
+    const setupBox = document.getElementById('driveSetup');
+    const saveBtn = document.getElementById('driveClientIdSave');
+    const input = document.getElementById('driveClientIdInput');
+
+    btn.addEventListener('click', ()=>{
+      if(drive.connected){
+        driveDisconnect();
+        return;
+      }
+      if(!drive.clientId){
+        setupBox.classList.remove('hidden');
+        input.value = drive.clientId || '';
+        return;
+      }
+      driveSignIn();
+    });
+
+    saveBtn.addEventListener('click', ()=>{
+      const val = input.value.trim();
+      if(!val){ alert('Paste your Client ID first.'); return; }
+      drive.clientId = val;
+      localStorage.setItem('financeLedger.gdriveClientId', val);
+      setupBox.classList.add('hidden');
+      driveSignIn();
+    });
+  }
+
+  function driveSignIn(){
+    if(typeof google === 'undefined' || !google.accounts){
+      alert('Google sign-in script has not loaded yet — check your connection and try again.');
+      return;
+    }
+    if(!drive.tokenClient){
+      drive.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: drive.clientId,
+        scope: DRIVE_SCOPE,
+        callback: async (resp)=>{
+          if(resp.error){ driveSetStatus('sign-in failed'); return; }
+          drive.accessToken = resp.access_token;
+          drive.connected = true;
+          document.getElementById('driveConnectBtn').textContent = 'disconnect drive';
+          driveSetStatus('syncing…');
+          await driveLoadAndMerge();
+          driveSetStatus('synced');
+        }
+      });
+    }
+    drive.tokenClient.requestAccessToken({ prompt: drive.accessToken ? '' : 'consent' });
+  }
+
+  function driveDisconnect(){
+    drive.connected = false;
+    drive.accessToken = null;
+    document.getElementById('driveConnectBtn').textContent = 'connect google drive';
+    driveSetStatus('');
+  }
+
+  async function driveApiFetch(url, options={}){
+    const res = await fetch(url, {
+      ...options,
+      headers: { ...(options.headers||{}), Authorization: 'Bearer ' + drive.accessToken }
+    });
+    if(res.status === 401){ driveDisconnect(); throw new Error('Drive session expired — reconnect.'); }
+    return res;
+  }
+
+  async function driveFindFileId(){
+    const res = await driveApiFetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=' + encodeURIComponent(`name='${DRIVE_FILE_NAME}'`));
+    const data = await res.json();
+    if(data.files && data.files.length){ return data.files[0].id; }
+    return null;
+  }
+
+  async function driveCreateFile(payload){
+    const boundary = 'finledge_boundary';
+    const metadata = { name: DRIVE_FILE_NAME, parents: ['appDataFolder'] };
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+      `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(payload)}\r\n--${boundary}--`;
+    const res = await driveApiFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body
+    });
+    const data = await res.json();
+    return data.id;
+  }
+
+  async function driveUpdateFile(fileId, payload){
+    await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async function driveReadFile(fileId){
+    const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    return res.json();
+  }
+
+  // On connect: pull whatever's in Drive and merge it with local data (by id, newest edit wins),
+  // so connecting a second device doesn't silently wipe out data typed on the first one.
+  async function driveLoadAndMerge(){
+    try{
+      drive.fileId = await driveFindFileId();
+      if(drive.fileId){
+        const remote = await driveReadFile(drive.fileId);
+        transactions = mergeById(transactions, remote.transactions || []);
+        budgets = mergeById(budgets, remote.budgets || []);
+        saveLocal();
+        renderAll();
+      }
+      await drivePush();
+    }catch(e){
+      console.error('Drive sync error', e);
+      driveSetStatus('sync error');
+    }
+  }
+
+  function mergeById(localArr, remoteArr){
+    const byId = new Map();
+    [...localArr, ...remoteArr].forEach(item=>{
+      if(item && item.id != null) byId.set(item.id, item);
+    });
+    return Array.from(byId.values());
+  }
+
+  async function drivePush(){
+    if(!drive.connected) return;
+    const payload = { updatedAt: new Date().toISOString(), transactions, budgets };
+    try{
+      if(drive.fileId){
+        await driveUpdateFile(drive.fileId, payload);
+      } else {
+        drive.fileId = await driveCreateFile(payload);
+      }
+      driveSetStatus('synced ' + new Date().toLocaleTimeString());
+    }catch(e){
+      console.error('Drive push failed', e);
+      driveSetStatus('sync failed');
+    }
+  }
+
+  function renderAll(){
+    if(typeof renderDashboard === 'function') renderDashboard();
+    if(typeof renderTransactions === 'function') renderTransactions();
+    if(typeof renderBudgets === 'function') renderBudgets();
+  }
+
+  // ---------- local storage (always used as fast cache / offline fallback) ----------
+  function loadData(){
+    try{
+      const t = localStorage.getItem(STORAGE_KEYS.transactions);
+      transactions = t ? JSON.parse(t) : [];
+    }catch(e){ transactions = []; }
+    try{
+      const b = localStorage.getItem(STORAGE_KEYS.budgets);
+      budgets = b ? JSON.parse(b) : [];
+    }catch(e){ budgets = []; }
+  }
+  function saveLocal(){
+    try{ localStorage.setItem(STORAGE_KEYS.transactions, JSON.stringify(transactions)); }
+    catch(e){ console.error('Could not save transactions', e); }
+    try{ localStorage.setItem(STORAGE_KEYS.budgets, JSON.stringify(budgets)); }
+    catch(e){ console.error('Could not save budgets', e); }
+  }
+  function saveTransactions(){
+    saveLocal();
+    if(drive.connected) drivePush();
+  }
+  function saveBudgets(){
+    saveLocal();
+    if(drive.connected) drivePush();
+  }
+
+  // ---------- nav ----------
+  document.querySelectorAll('nav.tabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('view-' + btn.dataset.view).classList.add('active');
+      if(btn.dataset.view === 'budgets'){
+        renderBudgets(); // refresh spent-vs-budget figures against the latest transactions
+      } else if(btn.dataset.view === 'dashboard'){
+        // wait a frame so the now-visible canvases have real dimensions before Chart.js measures them
+        requestAnimationFrame(()=> requestAnimationFrame(renderDashboard));
+      }
+    });
+  });
+
+  // ---------- populate selects ----------
+  function fillSelect(sel, options, placeholder){
+    sel.innerHTML = '';
+    if(placeholder){
+      const o = document.createElement('option');
+      o.value=''; o.textContent = placeholder;
+      sel.appendChild(o);
+    }
+    options.forEach(v=>{
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+  }
+
+  const txnCategorySel = document.getElementById('txnCategory');
+  const txnSubCategorySel = document.getElementById('txnSubCategory');
+  const subCatField = document.getElementById('subCatField');
+  const miscField = document.getElementById('miscField');
+  const txnMiscInput = document.getElementById('txnMisc');
+
+  fillSelect(txnCategorySel, CATEGORIES, null);
+  fillSelect(txnSubCategorySel, SUPPLY_SUBCATS, null);
+  fillSelect(document.getElementById('budgetCategory'), CATEGORIES, null);
+  fillSelect(document.getElementById('filterCategory'), CATEGORIES, 'All categories');
+
+  document.getElementById('txnDate').value = todayISO();
+  document.getElementById('budgetMonth').value = currentMonth();
+
+  function syncConditionalFields(){
+    const cat = txnCategorySel.value;
+    if(cat === 'Supplies'){
+      subCatField.classList.remove('hidden');
+      txnSubCategorySel.required = true;
+    } else {
+      subCatField.classList.add('hidden');
+      txnSubCategorySel.required = false;
+    }
+    if(cat === 'Miscellaneous'){
+      miscField.classList.remove('hidden');
+    } else {
+      miscField.classList.add('hidden');
+      txnMiscInput.value = '';
+    }
+  }
+  txnCategorySel.addEventListener('change', syncConditionalFields);
+  syncConditionalFields();
+
+  // ---------- add transaction ----------
+  document.getElementById('txnForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const date = document.getElementById('txnDate').value;
+    const category = txnCategorySel.value;
+    const amount = parseFloat(document.getElementById('txnAmount').value);
+    if(!date || !category || isNaN(amount) || amount <= 0) return;
+    if(category === 'Supplies' && !txnSubCategorySel.value) return;
+
+    transactions.push({
+      id: uid(),
+      date,
+      category,
+      subCategory: category === 'Supplies' ? txnSubCategorySel.value : '',
+      amount,
+      miscPurpose: category === 'Miscellaneous' ? txnMiscInput.value.trim() : '',
+      createdAt: new Date().toISOString()
+    });
+    await saveTransactions();
+    document.getElementById('txnAmount').value = '';
+    txnMiscInput.value = '';
+    document.getElementById('txnDate').value = todayISO();
+    renderMonthFilter();
+    renderTransactions();
+  });
+
+  async function deleteTransaction(id){
+    if(!confirm('Void this entry? This cannot be undone.')) return;
+    transactions = transactions.filter(t=>t.id !== id);
+    await saveTransactions();
+    renderMonthFilter();
+    renderTransactions();
+  }
+
+  // ---------- transactions table + filters ----------
+  const filterCategorySel = document.getElementById('filterCategory');
+  const filterMonthSel = document.getElementById('filterMonth');
+  filterCategorySel.addEventListener('change', renderTransactions);
+  filterMonthSel.addEventListener('change', renderTransactions);
+
+  function renderMonthFilter(){
+    const months = Array.from(new Set(transactions.map(t=>monthOf(t.date)))).sort().reverse();
+    const current = filterMonthSel.value;
+    filterMonthSel.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value=''; allOpt.textContent='All months';
+    filterMonthSel.appendChild(allOpt);
+    months.forEach(m=>{
+      const o = document.createElement('option');
+      o.value = m; o.textContent = monthLabel(m);
+      filterMonthSel.appendChild(o);
+    });
+    if(months.includes(current)) filterMonthSel.value = current;
+  }
+
+  function renderTransactions(){
+    const catFilter = filterCategorySel.value;
+    const monthFilter = filterMonthSel.value;
+    let rows = transactions.slice().sort((a,b)=> (b.date+b.createdAt).localeCompare(a.date+a.createdAt));
+    if(catFilter) rows = rows.filter(t=>t.category === catFilter);
+    if(monthFilter) rows = rows.filter(t=>monthOf(t.date) === monthFilter);
+
+    const body = document.getElementById('txnTableBody');
+    body.innerHTML = '';
+    if(rows.length === 0){
+      body.innerHTML = '<tr class="empty-row"><td colspan="7">No entries yet — add your first spend above.</td></tr>';
+    } else {
+      rows.forEach((t, idx)=>{
+        const detail = t.category === 'Supplies' ? t.subCategory
+          : (t.category === 'Miscellaneous' && t.miscPurpose ? t.miscPurpose : '—');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${rows.length - idx}</td>
+          <td>${formatDate(t.date)}</td>
+          <td>${t.category}</td>
+          <td>${detail}</td>
+          <td class="amount">${inr.format(t.amount)}</td>
+          <td>${formatLoggedAt(t.createdAt)}</td>
+          <td><button class="void-btn" data-id="${t.id}">void</button></td>
+        `;
+        body.appendChild(tr);
+      });
+      body.querySelectorAll('.void-btn').forEach(b=>{
+        b.addEventListener('click', ()=>deleteTransaction(b.dataset.id));
+      });
+    }
+  }
+
+  // ---------- budgets ----------
+  document.getElementById('budgetForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const month = document.getElementById('budgetMonth').value;
+    const category = document.getElementById('budgetCategory').value;
+    const amount = parseFloat(document.getElementById('budgetAmount').value);
+    if(!month || !category || isNaN(amount) || amount < 0) return;
+
+    const existingIdx = budgets.findIndex(b=>b.month===month && b.category===category);
+    if(existingIdx >= 0){
+      if(!confirm('A budget for ' + category + ' in ' + monthLabel(month) + ' already exists. Replace it?')) return;
+      budgets[existingIdx].amount = amount;
+    } else {
+      budgets.push({ id: uid(), month, category, amount });
+    }
+    await saveBudgets();
+    document.getElementById('budgetAmount').value = '';
+    renderBudgets();
+  });
+
+  async function deleteBudget(id){
+    if(!confirm('Remove this budget row?')) return;
+    budgets = budgets.filter(b=>b.id !== id);
+    await saveBudgets();
+    renderBudgets();
+  }
+
+  function spentFor(category, month){
+    return transactions
+      .filter(t=>t.category===category && monthOf(t.date)===month)
+      .reduce((s,t)=>s+t.amount, 0);
+  }
+
+  function renderBudgets(){
+    const rows = budgets.slice().sort((a,b)=> b.month.localeCompare(a.month) || a.category.localeCompare(b.category));
+    const body = document.getElementById('budgetTableBody');
+    body.innerHTML = '';
+    if(rows.length === 0){
+      body.innerHTML = '<tr class="empty-row"><td colspan="6">No budgets set yet — add one above.</td></tr>';
+      return;
+    }
+    const months = Array.from(new Set(rows.map(r=>r.month)));
+    months.forEach(month=>{
+      let monthTotal = 0;
+      rows.filter(r=>r.month === month).forEach(b=>{
+        const spent = spentFor(b.category, b.month);
+        const remaining = b.amount - spent;
+        monthTotal += b.amount;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${monthLabel(b.month)}</td>
+          <td>${b.category}</td>
+          <td class="amount">${inr.format(b.amount)}</td>
+          <td class="amount">${inr.format(spent)}</td>
+          <td class="amount" style="color:${remaining < 0 ? 'var(--stamp)' : 'inherit'}">${inr.format(remaining)}</td>
+          <td><button class="void-btn" data-id="${b.id}">remove</button></td>
+        `;
+        body.appendChild(tr);
+      });
+      const totalTr = document.createElement('tr');
+      totalTr.style.background = 'rgba(185,138,46,0.10)';
+      totalTr.innerHTML = `
+        <td colspan="2" class="month-total-label" style="border-top:2px solid var(--ink);">Total budgeted — ${monthLabel(month)}</td>
+        <td class="amount month-total-label" style="border-top:2px solid var(--ink);">${inr.format(monthTotal)}</td>
+        <td style="border-top:2px solid var(--ink);"></td>
+        <td style="border-top:2px solid var(--ink);"></td>
+        <td style="border-top:2px solid var(--ink);"></td>
+      `;
+      body.appendChild(totalTr);
+    });
+    body.querySelectorAll('.void-btn').forEach(b=>{
+      b.addEventListener('click', ()=>deleteBudget(b.dataset.id));
+    });
+  }
+
+  // ---------- dashboard ----------
+  document.getElementById('dashRangeToggle').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    dashRange = btn.dataset.range;
+    document.querySelectorAll('#dashRangeToggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderDashboard();
+  });
+
+  document.getElementById('clearDataBtn').addEventListener('click', ()=>{
+    if(!confirm('Clear ALL transactions and budgets? This cannot be undone.')) return;
+    transactions = [];
+    budgets = [];
+    saveTransactions();
+    saveBudgets();
+    renderMonthFilter();
+    renderTransactions();
+    renderBudgets();
+    if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', ()=>{
+    const payload = { exportedAt: new Date().toISOString(), transactions, budgets };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'finance-ledger-backup-' + todayISO() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', ()=>{
+    document.getElementById('importFile').click();
+  });
+
+  document.getElementById('importFile').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        if(!Array.isArray(data.transactions) || !Array.isArray(data.budgets)) throw new Error('Invalid file shape');
+        if(!confirm('Importing will replace all current data with this backup file. Continue?')) return;
+        transactions = data.transactions;
+        budgets = data.budgets;
+        saveTransactions();
+        saveBudgets();
+        renderMonthFilter();
+        renderTransactions();
+        renderBudgets();
+        if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+      }catch(err){
+        alert('Could not read that file — make sure it is a backup exported from this ledger.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  let categoryChart, timeChart;
+  let budgetDonutCharts = {};
+  const REMAINING_GREY = '#E4DCC5';
+  const OVER_RED = '#A23B2E';
+
+  function filteredForDashboard(){
+    if(dashRange === 'month'){
+      const m = currentMonth();
+      return transactions.filter(t=>monthOf(t.date) === m);
+    }
+    return transactions;
+  }
+
+  function renderDashboard(){
+    const rows = filteredForDashboard();
+    const total = rows.reduce((s,t)=>s+t.amount, 0);
+    document.getElementById('totalSpentValue').textContent = inrWhole.format(total);
+
+    // charts — guarded so a Chart.js load failure never blocks the rest of the dashboard
+    if(typeof Chart === 'undefined'){
+      document.getElementById('categoryChart').closest('.chart-box').innerHTML =
+        '<p style="color:var(--stamp); font-size:13px;">Charts library did not load — check your connection and reopen this tab.</p>';
+      document.getElementById('timeChart').closest('.chart-box').innerHTML =
+        '<p style="color:var(--stamp); font-size:13px;">Charts library did not load — check your connection and reopen this tab.</p>';
+    } else {
+      try{
+        // category donut
+        const byCat = {};
+        CATEGORIES.forEach(c=>byCat[c]=0);
+        rows.forEach(t=>{ byCat[t.category] = (byCat[t.category]||0) + t.amount; });
+        const catLabels = CATEGORIES.filter(c=>byCat[c] > 0);
+        const catData = catLabels.map(c=>byCat[c]);
+        const catColors = catLabels.map(c=>CAT_COLORS[c]);
+
+        const catCtx = document.getElementById('categoryChart').getContext('2d');
+        if(categoryChart) categoryChart.destroy();
+        categoryChart = new Chart(catCtx, {
+          type: 'doughnut',
+          data: { labels: catLabels.length ? catLabels : ['No spending yet'],
+                  datasets: [{ data: catData.length ? catData : [1],
+                                backgroundColor: catColors.length ? catColors : ['#C9BFA0'],
+                                borderColor: '#F7F3E7', borderWidth: 2 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'right', labels: { font: { family: 'IBM Plex Mono', size: 11 }, color: '#1F2A44', boxWidth: 12 } },
+              tooltip: { callbacks: { label: (ctx)=> ctx.label + ': ' + inr.format(ctx.parsed) } }
+            }
+          }
+        });
+
+        // time line — by month if all-time, by day if this-month
+        let lineLabels = [], lineData = [];
+        if(dashRange === 'month'){
+          const m = currentMonth();
+          const daysInMonth = new Date(Number(m.slice(0,4)), Number(m.slice(5,7)), 0).getDate();
+          const byDay = new Array(daysInMonth).fill(0);
+          rows.forEach(t=>{ byDay[Number(t.date.slice(8,10)) - 1] += t.amount; });
+          lineLabels = byDay.map((_,i)=> String(i+1));
+          lineData = byDay;
+        } else {
+          const byMonth = {};
+          transactions.forEach(t=>{ const m = monthOf(t.date); byMonth[m] = (byMonth[m]||0) + t.amount; });
+          const months = Object.keys(byMonth).sort();
+          lineLabels = months.map(monthLabel);
+          lineData = months.map(m=>byMonth[m]);
+        }
+
+        const timeCtx = document.getElementById('timeChart').getContext('2d');
+        if(timeChart) timeChart.destroy();
+        timeChart = new Chart(timeCtx, {
+          type: 'line',
+          data: { labels: lineLabels.length ? lineLabels : ['—'],
+                  datasets: [{ data: lineData.length ? lineData : [0],
+                                borderColor: '#1F2A44', backgroundColor: 'rgba(185,138,46,0.18)',
+                                fill: true, tension: 0.25, pointRadius: 2 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display:false },
+              tooltip: { callbacks: { label: (ctx)=> inr.format(ctx.parsed.y) } } },
+            scales: {
+              x: { ticks: { font: { family:'IBM Plex Mono', size: 10 }, color:'#52607A' }, grid: { color: 'rgba(201,191,160,0.4)' } },
+              y: { ticks: { font: { family:'IBM Plex Mono', size: 10 }, color:'#52607A',
+                            callback: (v)=> inrWhole.format(v) }, grid: { color: 'rgba(201,191,160,0.4)' } }
+            }
+          }
+        });
+      }catch(err){
+        console.error('Chart render failed', err);
+      }
+    }
+
+    // recent transactions
+    const recent = transactions.slice().sort((a,b)=> (b.date+b.createdAt).localeCompare(a.date+a.createdAt)).slice(0,8);
+    const recentBody = document.getElementById('recentTableBody');
+    recentBody.innerHTML = '';
+    if(recent.length === 0){
+      recentBody.innerHTML = '<tr class="empty-row"><td colspan="3">Nothing logged yet.</td></tr>';
+    } else {
+      recent.forEach(t=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${formatDate(t.date)}</td><td>${t.category}</td><td class="amount">${inr.format(t.amount)}</td>`;
+        recentBody.appendChild(tr);
+      });
+    }
+
+    // budgets this month — one small donut ring per category
+    renderBudgetDonuts();
+  }
+
+  function renderBudgetDonuts(){
+    Object.values(budgetDonutCharts).forEach(c=>{ try{ c.destroy(); }catch(e){} });
+    budgetDonutCharts = {};
+
+    const grid = document.getElementById('budgetDonutGrid');
+    const m = currentMonth();
+    const monthBudgets = budgets.filter(b=>b.month === m);
+
+    if(monthBudgets.length === 0){
+      grid.innerHTML = '<p style="color:var(--ink-soft); font-size:13px;">No budgets set for ' + monthLabel(m) + ' yet.</p>';
+      return;
+    }
+    if(typeof Chart === 'undefined'){
+      grid.innerHTML = '<p style="color:var(--stamp); font-size:13px;">Charts library did not load — reopen this tab.</p>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    monthBudgets.forEach(b=>{
+      const spent = spentFor(b.category, m);
+      const remaining = Math.max(b.amount - spent, 0);
+      const over = spent > b.amount;
+      const canvasId = 'donut-' + b.id;
+
+      const card = document.createElement('div');
+      card.className = 'donut-card';
+      card.innerHTML = `
+        <div class="ring"><canvas id="${canvasId}"></canvas></div>
+        <div class="cat-name">${b.category}</div>
+        <div class="cat-nums">${inr.format(spent)} / ${inr.format(b.amount)}</div>
+        ${over ? `<div class="over-badge">over by ${inr.format(spent - b.amount)}</div>` : ''}
+      `;
+      grid.appendChild(card);
+
+      try{
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        budgetDonutCharts[b.id] = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: over ? ['Over budget'] : ['Spent', 'Remaining'],
+            datasets: [{
+              data: over ? [1] : [spent, remaining],
+              backgroundColor: over ? [OVER_RED] : [CAT_COLORS[b.category], REMAINING_GREY],
+              borderColor: '#F7F3E7', borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '68%',
+            plugins: {
+              legend: { display:false },
+              tooltip: { enabled: !over, callbacks: { label: (ctx)=> ctx.label + ': ' + inr.format(ctx.parsed) } }
+            }
+          }
+        });
+      }catch(err){ console.error('Budget donut render failed', err); }
+    });
+  }
+
+  // ---------- init ----------
+  (async function init(){
+    await loadData();
+    renderMonthFilter();
+    renderTransactions();
+    renderBudgets();
+    // dashboard view starts hidden, so defer chart creation until its tab is opened
+    // (a canvas measured while display:none stays stuck at zero size)
+    initDriveButton();
+    // If a client ID is already saved from a previous visit, offer a one-tap reconnect
+    // rather than auto-triggering Google's popup (browsers often block un-requested popups).
+    if(drive.clientId){
+      driveSetStatus('tap "connect google drive" to sync');
+    }
+  })();
+})();
+</script>
+</body>
+</html>
