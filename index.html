@@ -198,6 +198,7 @@
     </div>
     <div class="header-actions">
       <button class="text-btn" id="driveConnectBtn">connect google drive</button>
+      <button class="text-btn" id="driveEditIdBtn" style="font-size:11px;">change client id</button>
       <span id="driveStatus" style="font-size:12px; color:var(--ink-soft); align-self:center;"></span>
       <button class="text-btn" id="exportBtn">export data</button>
       <button class="text-btn" id="importBtn">import data</button>
@@ -403,7 +404,7 @@
   const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
   const DRIVE_FILE_NAME = 'finance-ledger-data.json';
   const drive = {
-    clientId: localStorage.getItem('financeLedger.gdriveClientId') || '',
+    clientId: (localStorage.getItem('financeLedger.gdriveClientId') || '').trim(),
     tokenClient: null,
     accessToken: null,
     fileId: null,
@@ -436,12 +437,23 @@
     });
 
     saveBtn.addEventListener('click', ()=>{
+      // .trim() strips accidental leading/trailing spaces or newlines from mobile copy-paste,
+      // which otherwise silently breaks the ID and causes a 401 invalid_client error.
       const val = input.value.trim();
       if(!val){ alert('Paste your Client ID first.'); return; }
       drive.clientId = val;
+      drive.tokenClient = null; // force re-init with the new id
       localStorage.setItem('financeLedger.gdriveClientId', val);
       setupBox.classList.add('hidden');
+      driveDisconnect();
       driveSignIn();
+    });
+
+    document.getElementById('driveEditIdBtn').addEventListener('click', ()=>{
+      driveDisconnect();
+      setupBox.classList.remove('hidden');
+      input.value = drive.clientId || '';
+      input.focus();
     });
   }
 
