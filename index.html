@@ -241,7 +241,7 @@
           <input type="number" id="txnAmount" min="0" step="0.01" placeholder="0.00" required>
         </div>
         <div class="field wide hidden" id="miscField">
-          <label for="txnMisc">Misc purpose (if any)</label>
+          <label for="txnMisc">What was this for? (optional)</label>
           <input type="text" id="txnMisc" placeholder="What was this for?">
         </div>
         <div class="field">
@@ -316,6 +316,10 @@
         <div class="stamp">
           <div class="label">TOTAL SPENT</div>
           <div class="value" id="totalSpentValue">₹0</div>
+        </div>
+        <div class="stamp">
+          <div class="label">TOTAL BUDGET</div>
+          <div class="value" id="totalBudgetValue">₹0</div>
         </div>
         <div class="segmented" id="dashRangeToggle">
           <button data-range="all" class="active">All time</button>
@@ -688,7 +692,7 @@
       subCatField.classList.add('hidden');
       txnSubCategorySel.required = false;
     }
-    if(cat === 'Miscellaneous'){
+    if(cat === 'Miscellaneous' || cat === 'Self'){
       miscField.classList.remove('hidden');
     } else {
       miscField.classList.add('hidden');
@@ -713,7 +717,7 @@
       category,
       subCategory: category === 'Supplies' ? txnSubCategorySel.value : '',
       amount,
-      miscPurpose: category === 'Miscellaneous' ? txnMiscInput.value.trim() : '',
+      miscPurpose: (category === 'Miscellaneous' || category === 'Self') ? txnMiscInput.value.trim() : '',
       createdAt: new Date().toISOString()
     });
     await saveTransactions();
@@ -767,7 +771,7 @@
     } else {
       rows.forEach((t, idx)=>{
         const detail = t.category === 'Supplies' ? t.subCategory
-          : (t.category === 'Miscellaneous' && t.miscPurpose ? t.miscPurpose : '—');
+          : ((t.category === 'Miscellaneous' || t.category === 'Self') && t.miscPurpose ? t.miscPurpose : '—');
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${rows.length - idx}</td>
@@ -942,6 +946,15 @@
     const rows = filteredForDashboard();
     const total = rows.reduce((s,t)=>s+t.amount, 0);
     document.getElementById('totalSpentValue').textContent = inrWhole.format(total);
+
+    // Total budget mirrors the same all-time/this-month toggle as total spent:
+    // "This month" sums budgets set for the current month; "All time" sums every
+    // budget row ever entered, across all months and categories.
+    const budgetRows = dashRange === 'month'
+      ? budgets.filter(b=>b.month === currentMonth())
+      : budgets;
+    const totalBudget = budgetRows.reduce((s,b)=>s+b.amount, 0);
+    document.getElementById('totalBudgetValue').textContent = inrWhole.format(totalBudget);
 
     // charts — guarded so a Chart.js load failure never blocks the rest of the dashboard
     if(typeof Chart === 'undefined'){
